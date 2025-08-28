@@ -64,6 +64,16 @@ All colors MUST be HSL.
     --primary-variant: 142 76% 55%;
     --gradient-hero: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 76% 65%), hsl(35 77% 68%));
     --text-gradient: linear-gradient(135deg, hsl(var(--foreground)), hsl(var(--primary)), hsl(var(--accent)));
+    
+    /* Advanced gradients */
+    --gradient-shimmer: linear-gradient(90deg, transparent, hsl(var(--primary) / 0.1), transparent);
+    --gradient-glass: linear-gradient(135deg, hsl(var(--background) / 0.95), hsl(var(--background) / 0.8));
+    --gradient-glow: radial-gradient(circle at 50% 50%, hsl(var(--primary) / 0.3), transparent 70%);
+    
+    /* Enhanced shadows */
+    --shadow-glass: 0 8px 32px 0 hsl(31 12% 12% / 0.1);
+    --shadow-floating: 0 20px 40px -12px hsl(31 12% 12% / 0.25);
+    --shadow-xl: 0 25px 50px -12px hsl(31 12% 12% / 0.25);
 
     --sidebar-background: 0 0% 98%;
 

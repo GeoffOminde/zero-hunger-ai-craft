@@ -1,17 +1,17 @@
 import { Hero } from "@/components/Hero";
 import { Navigation } from "@/components/Navigation";
-import { AIFoodScanner } from "@/components/AIFoodScanner";
-import { FoodDonation } from "@/components/FoodDonation";
-import { ImpactDashboard } from "@/components/ImpactDashboard";
+import { EnhancedAIScanner } from "@/components/EnhancedAIScanner";
+import { EnhancedFoodDonation } from "@/components/EnhancedFoodDonation";
+import { EnhancedImpactDashboard } from "@/components/EnhancedImpactDashboard";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
       <Hero />
-      <FoodDonation />
-      <AIFoodScanner />
-      <ImpactDashboard />
+      <EnhancedFoodDonation />
+      <EnhancedAIScanner />
+      <EnhancedImpactDashboard />
     </div>
   );
 };
