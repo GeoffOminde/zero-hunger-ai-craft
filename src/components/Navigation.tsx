@@ -1,10 +1,20 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Leaf, Heart, Users, Camera } from "lucide-react";
+import { Menu, X, Leaf, Heart, Users, Camera, LogOut, User } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { label: "Donate Food", href: "#donate", icon: <Heart size={16} /> },
@@ -12,6 +22,10 @@ export const Navigation = () => {
     { label: "AI Scanner", href: "#scanner", icon: <Camera size={16} /> },
     { label: "Impact", href: "#impact", icon: <Leaf size={16} /> },
   ];
+
+  const getUserInitials = (email: string) => {
+    return email.substring(0, 2).toUpperCase();
+  };
 
   return (
     <motion.nav
@@ -49,9 +63,35 @@ export const Navigation = () => {
                 <span className="font-medium">{item.label}</span>
               </motion.a>
             ))}
-            <Button variant="hero" size="sm">
-              Get Started
-            </Button>
+            
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                      {user?.email ? getUserInitials(user.email) : 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuItem className="flex-col items-start">
+                  <div className="font-medium">{user?.user_metadata?.full_name || 'User'}</div>
+                  <div className="text-xs text-muted-foreground">{user?.email}</div>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={signOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Mobile Menu Button */}
@@ -89,9 +129,21 @@ export const Navigation = () => {
               <span className="font-medium">{item.label}</span>
             </motion.a>
           ))}
-          <div className="pt-3">
-            <Button variant="hero" className="w-full">
-              Get Started
+          <div className="pt-3 space-y-2">
+            <div className="flex items-center space-x-3 px-3 py-2">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                  {user?.email ? getUserInitials(user.email) : 'U'}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <div className="font-medium text-sm">{user?.user_metadata?.full_name || 'User'}</div>
+                <div className="text-xs text-muted-foreground">{user?.email}</div>
+              </div>
+            </div>
+            <Button variant="outline" className="w-full" onClick={signOut}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
             </Button>
           </div>
         </div>
