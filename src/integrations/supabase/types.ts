@@ -14,6 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      food_analysis: {
+        Row: {
+          analysis_data: Json | null
+          category: string
+          confidence: number
+          created_at: string
+          donation_suitability: string
+          estimated_expiry: string | null
+          food_name: string
+          freshness: string
+          id: string
+          image_url: string | null
+          nutritional_value: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_data?: Json | null
+          category: string
+          confidence: number
+          created_at?: string
+          donation_suitability: string
+          estimated_expiry?: string | null
+          food_name: string
+          freshness: string
+          id?: string
+          image_url?: string | null
+          nutritional_value?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_data?: Json | null
+          category?: string
+          confidence?: number
+          created_at?: string
+          donation_suitability?: string
+          estimated_expiry?: string | null
+          food_name?: string
+          freshness?: string
+          id?: string
+          image_url?: string | null
+          nutritional_value?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      food_listings: {
+        Row: {
+          available_until: string
+          contact_info: string
+          created_at: string
+          description: string | null
+          food_type: string
+          id: string
+          location: string
+          quantity: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_until: string
+          contact_info: string
+          created_at?: string
+          description?: string | null
+          food_type: string
+          id?: string
+          location: string
+          quantity: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_until?: string
+          contact_info?: string
+          created_at?: string
+          description?: string | null
+          food_type?: string
+          id?: string
+          location?: string
+          quantity?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      impact_metrics: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          location: string | null
+          metadata: Json | null
+          metric_type: string
+          unit: string | null
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          metric_type: string
+          unit?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          location?: string | null
+          metadata?: Json | null
+          metric_type?: string
+          unit?: string | null
+          updated_at?: string
+          value?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -40,6 +163,36 @@ export type Database = {
           full_name?: string | null
           id?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string
+          id: string
+          location: string | null
+          related_id: string | null
+          user_id: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description: string
+          id?: string
+          location?: string | null
+          related_id?: string | null
+          user_id: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          location?: string | null
+          related_id?: string | null
           user_id?: string
         }
         Relationships: []
