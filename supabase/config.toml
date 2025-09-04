@@ -1,1 +1,10 @@
 project_id = "pyiuszotgsjlcmzdauby"
+
+[functions.ai-food-analysis]
+verify_jwt = true
+
+[functions.food-listings]
+verify_jwt = true
+
+[functions.impact-metrics]
+verify_jwt = false

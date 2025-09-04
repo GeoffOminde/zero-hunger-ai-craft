@@ -1,73 +1,104 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, Users, Leaf, Heart, MapPin, Calendar } from "lucide-react";
-
-const impactStats = [
-  {
-    id: "meals",
-    title: "Meals Saved",
-    value: "12,847",
-    change: "+23%",
-    trend: "up",
-    icon: <Heart className="text-success" size={24} />,
-    description: "Meals rescued from waste this month"
-  },
-  {
-    id: "donors",
-    title: "Active Donors",
-    value: "284",
-    change: "+15%", 
-    trend: "up",
-    icon: <Users className="text-primary" size={24} />,
-    description: "Businesses and individuals donating food"
-  },
-  {
-    id: "waste",
-    title: "Waste Reduced",
-    value: "5.2 tons",
-    change: "+31%",
-    trend: "up", 
-    icon: <Leaf className="text-accent" size={24} />,
-    description: "Food waste prevented from landfills"
-  },
-  {
-    id: "communities",
-    title: "Communities Served",
-    value: "47",
-    change: "+8%",
-    trend: "up",
-    icon: <MapPin className="text-warning" size={24} />,
-    description: "Neighborhoods receiving food donations"
-  }
-];
-
-const recentActivity = [
-  {
-    id: 1,
-    type: "donation",
-    title: "Green Market donated 50 lbs of fresh vegetables",
-    time: "2 hours ago",
-    location: "Downtown District"
-  },
-  {
-    id: 2, 
-    type: "rescue",
-    title: "Community Kitchen received bakery items for 30 people",
-    time: "4 hours ago",
-    location: "East Side"
-  },
-  {
-    id: 3,
-    type: "match",
-    title: "AI matched 3 new donor-recipient pairs",
-    time: "6 hours ago",
-    location: "Citywide"
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 export const ImpactDashboard = () => {
+  const [impactStats, setImpactStats] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadImpactData();
+  }, []);
+
+  const loadImpactData = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('impact-metrics');
+      
+      if (error) throw error;
+
+      // Transform metrics data
+      const metricsMap = new Map();
+      data.metrics?.forEach((metric: any) => {
+        metricsMap.set(metric.metric_type, metric);
+      });
+
+      const transformedStats = [
+        {
+          id: "meals",
+          title: "Meals Saved",
+          value: metricsMap.get('meals_saved')?.value?.toLocaleString() || "0",
+          change: "+23%",
+          trend: "up",
+          icon: <Heart className="text-success" size={24} />,
+          description: "Meals rescued from waste this month"
+        },
+        {
+          id: "donors",
+          title: "Donations Completed",
+          value: metricsMap.get('donations_completed')?.value?.toLocaleString() || "0",
+          change: "+15%", 
+          trend: "up",
+          icon: <Users className="text-primary" size={24} />,
+          description: "Successful food donations"
+        },
+        {
+          id: "waste",
+          title: "Waste Reduced",
+          value: `${(metricsMap.get('waste_reduced')?.value || 0)} lbs`,
+          change: "+31%",
+          trend: "up", 
+          icon: <Leaf className="text-accent" size={24} />,
+          description: "Food waste prevented from landfills"
+        },
+        {
+          id: "communities",
+          title: "People Helped",
+          value: metricsMap.get('users_helped')?.value?.toLocaleString() || "0",
+          change: "+8%",
+          trend: "up",
+          icon: <MapPin className="text-warning" size={24} />,
+          description: "People receiving food donations"
+        }
+      ];
+
+      setImpactStats(transformedStats);
+
+      // Transform recent activities
+      const transformedActivities = data.recent_activities?.slice(0, 3).map((activity: any, index: number) => ({
+        id: activity.id,
+        type: activity.activity_type,
+        title: activity.description,
+        time: formatTimeAgo(activity.created_at),
+        location: activity.location || "Unknown location"
+      })) || [];
+
+      setRecentActivity(transformedActivities);
+      
+    } catch (error) {
+      console.error('Error loading impact data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Less than an hour ago';
+    if (diffInHours === 1) return '1 hour ago';
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return '1 day ago';
+    return `${diffInDays} days ago`;
+  };
   return (
     <section id="impact" className="py-20 px-4">
       <div className="max-w-6xl mx-auto">
@@ -99,7 +130,27 @@ export const ImpactDashboard = () => {
           transition={{ duration: 0.6, delay: 0.2 }}
           viewport={{ once: true }}
         >
-          {impactStats.map((stat, index) => (
+          {loading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="h-full">
+                <CardContent className="p-6">
+                  <div className="animate-pulse">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-8 h-8 bg-muted rounded"></div>
+                      <div className="w-12 h-6 bg-muted rounded"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="w-20 h-4 bg-muted rounded"></div>
+                      <div className="w-16 h-8 bg-muted rounded"></div>
+                      <div className="w-full h-3 bg-muted rounded"></div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          ) : (
+            impactStats.map((stat, index) => (
             <motion.div
               key={stat.id}
               initial={{ opacity: 0, y: 30 }}
@@ -132,8 +183,9 @@ export const ImpactDashboard = () => {
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
-          ))}
+              </motion.div>
+            ))
+          )}
         </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -201,7 +253,27 @@ export const ImpactDashboard = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recentActivity.map((activity, index) => (
+                {loading ? (
+                  // Loading skeleton for activities
+                  Array.from({ length: 3 }).map((_, index) => (
+                    <div key={index} className="flex items-start gap-4 p-4 rounded-lg bg-muted/30">
+                      <div className="flex-shrink-0 w-2 h-2 bg-muted rounded-full mt-2" />
+                      <div className="flex-1 animate-pulse">
+                        <div className="w-3/4 h-4 bg-muted rounded mb-2"></div>
+                        <div className="flex gap-4">
+                          <div className="w-16 h-3 bg-muted rounded"></div>
+                          <div className="w-24 h-3 bg-muted rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : recentActivity.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Calendar className="mx-auto text-muted-foreground mb-4" size={48} />
+                    <p className="text-muted-foreground">No recent activities yet.</p>
+                  </div>
+                ) : (
+                  recentActivity.map((activity, index) => (
                   <motion.div
                     key={activity.id}
                     className="flex items-start gap-4 p-4 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
@@ -224,13 +296,14 @@ export const ImpactDashboard = () => {
                           {activity.location}
                         </span>
                       </div>
-                    </div>
-                  </motion.div>
-                ))}
+                      </div>
+                    </motion.div>
+                  ))
+                )}
 
                 <div className="pt-4 border-t">
                   <p className="text-center text-sm text-muted-foreground">
-                    Showing latest activities from the last 24 hours
+                    {loading ? 'Loading activities...' : 'Showing latest activities from the database'}
                   </p>
                 </div>
               </CardContent>

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Camera, Upload, Zap, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface FoodAnalysis {
   name: string;
@@ -22,7 +23,7 @@ export const AIFoodScanner = () => {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mock AI analysis - In real app, this would use Hugging Face transformers
+  // Real AI analysis using Supabase edge function
   const analyzeFood = async (imageFile: File) => {
     setIsAnalyzing(true);
     
@@ -32,46 +33,40 @@ export const AIFoodScanner = () => {
       reader.onload = (e) => setImagePreview(e.target?.result as string);
       reader.readAsDataURL(imageFile);
 
-      // Simulate AI processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Convert image to base64
+      const base64Promise = new Promise<string>((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.readAsDataURL(imageFile);
+      });
 
-      // Mock analysis result
-      const mockResults: FoodAnalysis[] = [
-        {
-          name: "Fresh Apples",
-          category: "Fruit",
-          freshness: "excellent",
-          estimatedExpiry: "5-7 days",
-          nutritionalValue: "High vitamin C, fiber",
-          donationSuitability: "excellent",
-          confidence: 95
-        },
-        {
-          name: "Mixed Vegetables",
-          category: "Vegetables",
-          freshness: "good",
-          estimatedExpiry: "3-4 days",
-          nutritionalValue: "Rich in vitamins A, K",
-          donationSuitability: "good",
-          confidence: 87
-        },
-        {
-          name: "Bread Loaf",
-          category: "Bakery",
-          freshness: "fair",
-          estimatedExpiry: "1-2 days",
-          nutritionalValue: "Carbohydrates, protein",
-          donationSuitability: "good",
-          confidence: 92
-        }
-      ];
+      const imageData = await base64Promise;
 
-      const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
-      setAnalysis(randomResult);
-      
+      // Call the AI food analysis edge function
+      const { data, error } = await supabase.functions.invoke('ai-food-analysis', {
+        body: { imageData }
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to analyze food');
+      }
+
+      const analysisResult: FoodAnalysis = {
+        name: data.food_name,
+        category: data.category,
+        freshness: data.freshness,
+        estimatedExpiry: data.estimated_expiry,
+        nutritionalValue: data.nutritional_value,
+        donationSuitability: data.donation_suitability,
+        confidence: data.confidence
+      };
+
+      setAnalysis(analysisResult);
       toast.success("Food analysis completed!");
+      
     } catch (error) {
-      toast.error("Analysis failed. Please try again.");
+      console.error('Analysis error:', error);
+      toast.error(error instanceof Error ? error.message : "Analysis failed. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }

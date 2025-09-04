@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Heart, MapPin, Clock, Users, Plus, Check } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DonationListing {
   id: string;
@@ -22,28 +23,8 @@ interface DonationListing {
 
 export const FoodDonation = () => {
   const [showForm, setShowForm] = useState(false);
-  const [listings, setListings] = useState<DonationListing[]>([
-    {
-      id: "1",
-      foodType: "Fresh Vegetables",
-      quantity: "20 lbs",
-      description: "Mixed fresh vegetables from our grocery store. Perfect condition, expires tomorrow.",
-      location: "Downtown Market, Main St",
-      availableUntil: "Today 8:00 PM",
-      contactInfo: "manager@market.com",
-      status: "available"
-    },
-    {
-      id: "2",
-      foodType: "Bakery Items",
-      quantity: "15 items",
-      description: "End-of-day bread, pastries, and sandwiches. All items baked fresh today.",
-      location: "Green Bakery, Oak Avenue",
-      availableUntil: "Today 6:00 PM",
-      contactInfo: "info@greenbakery.com",
-      status: "available"
-    }
-  ]);
+  const [listings, setListings] = useState<DonationListing[]>([]);
+  const [loading, setLoading] = useState(true);
   
   const [formData, setFormData] = useState({
     foodType: "",
@@ -54,37 +35,107 @@ export const FoodDonation = () => {
     contactInfo: ""
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const newListing: DonationListing = {
-      id: Date.now().toString(),
-      ...formData,
-      status: "available"
-    };
-    
-    setListings(prev => [newListing, ...prev]);
-    setFormData({
-      foodType: "",
-      quantity: "",
-      description: "",
-      location: "",
-      availableUntil: "",
-      contactInfo: ""
-    });
-    setShowForm(false);
-    toast.success("Food listing created successfully!");
+  // Load food listings on component mount
+  useEffect(() => {
+    loadListings();
+  }, []);
+
+  const loadListings = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('food-listings');
+      
+      if (error) throw error;
+      
+      // Transform database records to component format
+      const transformedListings = data.map((item: any) => ({
+        id: item.id,
+        foodType: item.food_type,
+        quantity: item.quantity,
+        description: item.description,
+        location: item.location,
+        availableUntil: new Date(item.available_until).toLocaleDateString(),
+        contactInfo: item.contact_info,
+        status: item.status
+      }));
+      
+      setListings(transformedListings);
+    } catch (error) {
+      console.error('Error loading listings:', error);
+      toast.error("Failed to load food listings");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleReserve = (id: string) => {
-    setListings(prev => 
-      prev.map(listing => 
-        listing.id === id 
-          ? { ...listing, status: "reserved" }
-          : listing
-      )
-    );
-    toast.success("Food reserved! We'll connect you with the donor.");
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('food-listings', {
+        body: {
+          food_type: formData.foodType,
+          quantity: formData.quantity,
+          description: formData.description,
+          location: formData.location,
+          available_until: new Date(formData.availableUntil).toISOString(),
+          contact_info: formData.contactInfo
+        }
+      });
+
+      if (error) throw error;
+
+      // Add new listing to local state
+      const newListing: DonationListing = {
+        id: data.id,
+        foodType: data.food_type,
+        quantity: data.quantity,
+        description: data.description,
+        location: data.location,
+        availableUntil: new Date(data.available_until).toLocaleDateString(),
+        contactInfo: data.contact_info,
+        status: data.status
+      };
+      
+      setListings(prev => [newListing, ...prev]);
+      setFormData({
+        foodType: "",
+        quantity: "",
+        description: "",
+        location: "",
+        availableUntil: "",
+        contactInfo: ""
+      });
+      setShowForm(false);
+      toast.success("Food listing created successfully!");
+      
+    } catch (error) {
+      console.error('Error creating listing:', error);
+      toast.error("Failed to create food listing");
+    }
+  };
+
+  const handleReserve = async (id: string) => {
+    try {
+      const { error } = await supabase.functions.invoke('food-listings', {
+        body: { status: 'reserved' },
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      if (error) throw error;
+
+      setListings(prev => 
+        prev.map(listing => 
+          listing.id === id 
+            ? { ...listing, status: "reserved" }
+            : listing
+        )
+      );
+      toast.success("Food reserved! We'll connect you with the donor.");
+      
+    } catch (error) {
+      console.error('Error reserving listing:', error);
+      toast.error("Failed to reserve food listing");
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -158,15 +209,15 @@ export const FoodDonation = () => {
                       <div className="space-y-2">
                         <div className="flex justify-between">
                           <span className="text-sm text-muted-foreground">Active Listings</span>
-                          <span className="text-sm font-medium">{listings.filter(l => l.status === "available").length}</span>
+                          <span className="text-sm font-medium">{loading ? '...' : listings.filter(l => l.status === "available").length}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Meals Saved Today</span>
-                          <span className="text-sm font-medium">247</span>
+                          <span className="text-sm text-muted-foreground">Total Listings</span>
+                          <span className="text-sm font-medium">{loading ? '...' : listings.length}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-sm text-muted-foreground">Active Donors</span>
-                          <span className="text-sm font-medium">89</span>
+                          <span className="text-sm text-muted-foreground">Reserved Today</span>
+                          <span className="text-sm font-medium">{loading ? '...' : listings.filter(l => l.status === "reserved").length}</span>
                         </div>
                       </div>
                     </div>
@@ -276,7 +327,19 @@ export const FoodDonation = () => {
               </div>
 
               <div className="space-y-4">
-                {listings.map((listing, index) => (
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin mx-auto w-8 h-8 border-4 border-primary border-t-transparent rounded-full mb-4" />
+                    <p className="text-muted-foreground">Loading food donations...</p>
+                  </div>
+                ) : listings.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Heart className="mx-auto text-muted-foreground mb-4" size={48} />
+                    <p className="text-muted-foreground">No food donations available yet.</p>
+                    <p className="text-sm text-muted-foreground">Be the first to create a listing!</p>
+                  </div>
+                ) : (
+                  listings.map((listing, index) => (
                   <motion.div
                     key={listing.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -326,7 +389,8 @@ export const FoodDonation = () => {
                       </CardContent>
                     </Card>
                   </motion.div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
           </motion.div>
